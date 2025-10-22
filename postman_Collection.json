@@ -1,0 +1,158 @@
+{
+	"info": {
+		"_postman_id": "face-verification-collection",
+		"name": "Face Verification Microservice",
+		"description": "AI-powered face verification microservice using ArcFace ONNX model",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "face-verification"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/health",
+					"host": ["{{baseUrl}}"],
+					"path": ["health"]
+				},
+				"description": "Check if the service is running"
+			},
+			"response": []
+		},
+		{
+			"name": "Service Info",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/info",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "info"]
+				},
+				"description": "Get service information and available endpoints"
+			},
+			"response": []
+		},
+		{
+			"name": "Register Face (Encode)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "image",
+							"type": "file",
+							"src": [],
+							"description": "Face image file (JPEG, PNG, WebP)"
+						},
+						{
+							"key": "userId",
+							"value": "test_user_001",
+							"type": "text",
+							"description": "Optional user identifier"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/encode",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "encode"]
+				},
+				"description": "Generate face embedding from uploaded image"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has embedding', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('success', true);",
+							"    pm.expect(jsonData).to.have.property('embedding');",
+							"    pm.expect(jsonData.embedding).to.be.an('array');",
+							"    pm.expect(jsonData.embedding).to.have.lengthOf(512);",
+							"});",
+							"",
+							"// Store embedding for comparison test",
+							"if (pm.response.code === 200) {",
+							"    const jsonData = pm.response.json();",
+							"    pm.environment.set('storedEmbedding', JSON.stringify(jsonData.embedding));",
+							"    pm.environment.set('userId', jsonData.userId);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		},
+		{
+			"name": "Verify Face (Compare)",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "image",
+							"type": "file",
+							"src": [],
+							"description": "Face image to verify (JPEG, PNG, WebP)"
+						},
+						{
+							"key": "storedEmbedding",
+							"value": "{{storedEmbedding}}",
+							"type": "text",
+							"description": "JSON array of stored face embedding from registration"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/compare",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "compare"]
+				},
+				"description": "Compare face image against stored embedding"
+			},
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status code is 200', function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test('Response has comparison result', function () {",
+							"    const jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('success', true);",
+							"    pm.expect(jsonData).to.have.property('isMatch');",
+							"    pm.expect(jsonData).to.have.property('similarity');",
+							"    pm.expect(jsonData.similarity).to.be.a('number');",
+							"    pm.expect(jsonData.similarity).to.be.within(0, 1);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	]
+}
